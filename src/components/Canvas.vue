@@ -34,6 +34,8 @@ export default {
       context: {},
       canvasWidth: 320,
       canvasHeight: 240,
+      dragging: false,
+      previousPoint: {},
       msg: '0w0'
     }
   },
@@ -46,8 +48,28 @@ export default {
         y: parseInt((evt.clientY - rect.top) / (rect.bottom - rect.top) * this.canvasHeight)
       }
     },
+    mousemove (event) {
+      let point = this.getMousePos(event)
+      console.log(`mouseMove! ${point.x}, ${point.y}`)
+      if (this.dragging) {
+        this.drawLine(this.previousPoint, point)
+        this.previousPoint = point
+      }
+    },
+    mousedown (event) {
+      this.previousPoint = this.getMousePos(event)
+      this.dragging = true
+      // let point = this.getMousePos(event)
+      // if (this.isMouseOnNode(point)) {
+      //   // point selected
+      //   this.dragMode = true
+      // } else {
+      //   this.dragMode = false
+      // }
+    },
     mouseup (event) {
       let mouseUpPoint = this.getMousePos(event)
+      this.dragging = false
       // if (this.dragMode && this.overPoint) {
       //   this.dragPoint(this.overPoint, mouseUpPoint)
       //   this.dragMode = false
@@ -68,27 +90,19 @@ export default {
         }
       })
     },
-    mousemove (event) {
-      // let point = this.getMousePos(event)
-      // this.selectedPoint(point)
-      // if (this.dragMode && this.overPoint) {
-      //   this.dragPoint(this.overPoint, point)
-      // }
-    },
-    mousedown (event) {
-      // let point = this.getMousePos(event)
-      // if (this.isMouseOnNode(point)) {
-      //   // point selected
-      //   this.dragMode = true
-      // } else {
-      //   this.dragMode = false
-      // }
-    },
     addNode (point) {
       this.context.save()
       this.drawNode(point)
       this.context.restore()
       this.points.push(point)
+    },
+    drawLine (from, to) {
+      this.context.beginPath()
+      this.context.moveTo(from.x, from.y)
+      this.context.lineTo(to.x, to.y)
+      this.context.strokeStyle = this.strokeStyle
+      this.context.lineWidth = this.pointSize
+      this.context.stroke()
     },
     drawNode (point) {
       this.context.beginPath()
