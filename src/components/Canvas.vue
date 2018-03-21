@@ -1,6 +1,6 @@
 <template>
     <div class="flex">
-        <div>
+      <div>
         <div class="hello">
             <h1>{{ msg }}</h1>
         </div>
@@ -12,9 +12,14 @@
             @mouseup="mouseup"
             @mousemove="mousemove"
         ></canvas>
-        <input type="checkbox" id="checkbox" v-model="checked">
-        <label for="checkbox">{{ checked }}</label>
+        <input type="checkbox" id="checkbox" v-model="checked"><label for="checkbox">bucket</label>
+        <div>
+          <input type="radio" id="black" value="#110000" v-model="color" checked/>
+          <label for="black">Black</label>
+          <input type="radio" id="red" value="#ff0000" v-model="color"/>
+          <label for="red">Red</label>
         </div>
+      </div>
     </div>
 </template>
 
@@ -39,7 +44,8 @@ export default {
       dragging: false,
       previousPoint: {},
       msg: '0w0',
-      checked: false
+      checked: false,
+      color: {}
     }
   },
   methods: {
@@ -104,6 +110,7 @@ export default {
       this.points.push(point)
     },
     drawLine (p1, p2) {
+      this.context.save()
       var from = p1.x < p2.x ? p1 : p2
       var to = p1.x < p2.x ? p2 : p1
 
@@ -131,6 +138,7 @@ export default {
         }
         cur = {x: cur.x + 1, y: curY}
       }
+      this.context.restore()
     },
     drawNode (point) {
       this.context.beginPath()
@@ -141,7 +149,7 @@ export default {
       this.context.lineTo(point.x + startPosOffset, point.y + startPosOffset)
       this.context.lineTo(point.x + startPosOffset, point.y - startPosOffset)
       this.context.lineTo(point.x - startPosOffset, point.y - startPosOffset)
-      this.context.fillStyle = this.fillStyle
+      this.context.fillStyle = this.color
       this.context.fill()
     },
     fillAsFloodInternal (point, imgData, baseColor, fillColor, stack) {
@@ -191,13 +199,18 @@ export default {
       var stack = [point]
       while (stack.length > 0) {
         var current = stack.pop()
-        this.fillAsFloodInternal(current, imgData, baseColor, {R: 255, G: 123, B: 0}, stack)
+        this.fillAsFloodInternal(current, imgData, baseColor, colorCodeToRGB(this.color), stack)
       }
       this.context.putImageData(imgData, 0, 0)
     }
   }
 }
-
+function colorCodeToRGB (code) {
+  var red = parseInt(code.substring(1, 3), 16)
+  var green = parseInt(code.substring(3, 5), 16)
+  var blue = parseInt(code.substring(5, 7), 16)
+  return {R: red, G: green, B: blue}
+}
 function colorPixel (pixelPos, imgData, baseColor) {
   imgData.data[pixelPos] = baseColor.R
   imgData.data[pixelPos + 1] = baseColor.G
