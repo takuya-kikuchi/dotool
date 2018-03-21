@@ -53,7 +53,7 @@ export default {
     },
     mousemove (event) {
       let point = this.getMousePos(event)
-      console.log(`mouseMove! ${point.x}, ${point.y}`)
+      // console.log(`mouseMove! ${point.x}, ${point.y}`)
       if (this.dragging) {
         this.drawLine(this.previousPoint, point)
         this.previousPoint = point
@@ -103,18 +103,39 @@ export default {
       this.context.restore()
       this.points.push(point)
     },
-    drawLine (from, to) {
-      this.context.beginPath()
-      this.context.moveTo(from.x, from.y)
-      this.context.lineTo(to.x, to.y)
-      this.context.strokeStyle = this.strokeStyle
-      this.context.lineWidth = this.pointSize
-      this.context.stroke()
+    drawLine (p1, p2) {
+      var from = p1.x < p2.x ? p1 : p2
+      var to = p1.x < p2.x ? p2 : p1
+
+      var dx = to.x - from.x + 1
+      var dy = to.y - from.y
+      var ratio = dy / dx
+
+      var cur = from
+      console.log(`drawLine ${p1.x},${p1.y} -> ${p2.x},${p2.y} dx:${dx} dy:${dy} ratio: ${ratio}`)
+      while (cur.x <= to.x) {
+        console.log(`${cur.x}, ${cur.y} -> ${to.x}, ${to.y}`)
+        this.drawNode(cur)
+        var curY = cur.y
+        var nextY = from.y + ratio * (cur.x - from.x + 1)
+        if (ratio > 0) {
+          while (curY < nextY) {
+            this.drawNode({x: cur.x, y: curY})
+            curY += 1
+          }
+        } else {
+          while (curY > nextY) {
+            this.drawNode({x: cur.x, y: curY})
+            curY -= 1
+          }
+        }
+        cur = {x: cur.x + 1, y: curY}
+      }
     },
     drawNode (point) {
       this.context.beginPath()
       var startPosOffset = Math.floor(this.pointSize / 2)
-      console.log(`${point.x - startPosOffset},${point.y - startPosOffset} - ${point.x + this.pointSize},${point.y + this.pointSize}`)
+      // console.log(`${point.x - startPosOffset},${point.y - startPosOffset} - ${point.x + this.pointSize},${point.y + this.pointSize}`)
       this.context.moveTo(point.x - startPosOffset, point.y - startPosOffset)
       this.context.lineTo(point.x - startPosOffset, point.y + startPosOffset)
       this.context.lineTo(point.x + startPosOffset, point.y + startPosOffset)
@@ -122,8 +143,6 @@ export default {
       this.context.lineTo(point.x - startPosOffset, point.y - startPosOffset)
       this.context.fillStyle = this.fillStyle
       this.context.fill()
-      this.context.strokeStyle = this.strokeStyle
-      this.context.stroke()
     },
     fillAsFloodInternal (point, imgData, baseColor, fillColor, stack) {
       var y = point.y
