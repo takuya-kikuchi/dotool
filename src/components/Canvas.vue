@@ -29,11 +29,12 @@ export default {
   mounted () {
     this.canvas = this.$refs.canvas
     this.context = this.canvas.getContext('2d')
+    this.canvasData = this.context.getImageData(0, 0, this.canvasWidth, this.canvasHeight)
     // this.scroller = new Scroller(this.drawAllNodes, { zooming: true })
   },
   data () {
     return {
-      pointSize: 2,
+      pointSize: 10,
       strokeStyle: 'darkgrey',
       fillStyle: 'darkgrey',
       points: [],
@@ -45,10 +46,22 @@ export default {
       previousPoint: {},
       msg: '0w0',
       checked: false,
-      color: {}
+      color: {},
+      canvasData: []
     }
   },
   methods: {
+    zoomIn () {
+      console.log('zoomIn!')
+      var imgData = this.context.getImageData(0, 0, this.canvasWidth, this.canvasHeight)
+      this.context.save()
+      this.context.scale(2, 2)
+      this.context.putImageData(imgData, this.canvasWidth, this.canvasHeight)
+      this.context.restore()
+    },
+    zoomOut () {
+
+    },
     getMousePos (evt) {
       // https://stackoverflow.com/questions/17130395/real-mouse-position-in-canvas
       var rect = this.context.canvas.getBoundingClientRect()
@@ -60,6 +73,7 @@ export default {
     mousemove (event) {
       let point = this.getMousePos(event)
       // console.log(`mouseMove! ${point.x}, ${point.y}`)
+      if (this.checked) return
       if (this.dragging) {
         this.drawLine(this.previousPoint, point)
         this.previousPoint = point
@@ -110,7 +124,6 @@ export default {
       this.points.push(point)
     },
     drawLine (p1, p2) {
-      this.context.save()
       var from = p1.x < p2.x ? p1 : p2
       var to = p1.x < p2.x ? p2 : p1
 
@@ -138,19 +151,25 @@ export default {
         }
         cur = {x: cur.x + 1, y: curY}
       }
-      this.context.restore()
     },
     drawNode (point) {
-      this.context.beginPath()
       var startPosOffset = Math.floor(this.pointSize / 2)
-      // console.log(`${point.x - startPosOffset},${point.y - startPosOffset} - ${point.x + this.pointSize},${point.y + this.pointSize}`)
-      this.context.moveTo(point.x - startPosOffset, point.y - startPosOffset)
-      this.context.lineTo(point.x - startPosOffset, point.y + startPosOffset)
-      this.context.lineTo(point.x + startPosOffset, point.y + startPosOffset)
-      this.context.lineTo(point.x + startPosOffset, point.y - startPosOffset)
-      this.context.lineTo(point.x - startPosOffset, point.y - startPosOffset)
-      this.context.fillStyle = this.color
-      this.context.fill()
+
+      var rgb = colorCodeToRGB(this.color)
+      for (var i = 0; i < this.pointSize / 2; i++) {
+        for (var j = 0; j < this.pointSize / 2; j++) {
+          this.drawPointInternal({ x: point.x - startPosOffset + i, y: point.y - startPosOffset + j }, rgb)
+        }
+      }
+      this.context.putImageData(this.canvasData, 0, 0, point.x - startPosOffset, point.y - startPosOffset, this.pointSize, this.pointSize)
+    },
+    drawPointInternal (point, color) {
+      var index = (point.x + point.y * this.canvasWidth) * 4
+
+      this.canvasData.data[index + 0] = color.R
+      this.canvasData.data[index + 1] = color.G
+      this.canvasData.data[index + 2] = color.B
+      this.canvasData.data[index + 3] = 0xFF
     },
     fillAsFloodInternal (point, imgData, baseColor, fillColor, stack) {
       var y = point.y
@@ -192,7 +211,8 @@ export default {
       }
     },
     fillAsFlood (point) {
-      var imgData = this.context.getImageData(0, 0, this.canvasWidth, this.canvasHeight)
+      // var imgData = this.context.getImageData(0, 0, this.canvasWidth, this.canvasHeight)
+      var imgData = this.canvasData
       var pixelPos = (point.y * this.canvasWidth + point.x) * 4
       var baseColor = decompositColor(imgData, pixelPos)
       console.log(`${baseColor.R} ${baseColor.G} ${baseColor.B}, ${this.fillStyle}`)
