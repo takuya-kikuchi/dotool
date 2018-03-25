@@ -18,22 +18,30 @@
           <label for="black">Black</label>
           <input type="radio" id="red" value="#ff0000" v-model="color"/>
           <label for="red">Red</label>
+          <button v-on:click="zoomIn" >ZoomIn</button>
+          <button v-on:click="zoomOut" >ZoomOut</button>
         </div>
       </div>
     </div>
 </template>
 
 <script>
+import Scroller from 'scroller'
+
 export default {
   name: 'Canvas',
   mounted () {
     this.canvas = this.$refs.canvas
     this.context = this.canvas.getContext('2d')
     this.canvasData = this.context.getImageData(0, 0, this.canvasWidth, this.canvasHeight)
-    // this.scroller = new Scroller(this.drawAllNodes, { zooming: true })
+    this.scroller = new Scroller.Scroller(this.render, { zooming: true })
+    // var rect = this.canvas.getBoundingClientRect()
+    // this.scroller.setPosition(rect.left + this.canvas.clientLeft, rect.top + this.canvas.clientTop)
+    // this.scroller.setDimensions(200, 200, this.canvasWidth, this.canvasHeight)
   },
   data () {
     return {
+      scroller: {},
       pointSize: 10,
       strokeStyle: 'darkgrey',
       fillStyle: 'darkgrey',
@@ -47,20 +55,18 @@ export default {
       msg: '0w0',
       checked: false,
       color: {},
-      canvasData: []
+      canvasData: [],
+      zoom: 1
     }
   },
   methods: {
     zoomIn () {
       console.log('zoomIn!')
-      var imgData = this.context.getImageData(0, 0, this.canvasWidth, this.canvasHeight)
-      this.context.save()
-      this.context.scale(2, 2)
-      this.context.putImageData(imgData, this.canvasWidth, this.canvasHeight)
-      this.context.restore()
+      this.scroller.zoomBy(2, true)
     },
     zoomOut () {
-
+      console.log('zoomOut!')
+      this.scroller.zoomBy(0.5, true)
     },
     getMousePos (evt) {
       // https://stackoverflow.com/questions/17130395/real-mouse-position-in-canvas
@@ -222,9 +228,23 @@ export default {
         this.fillAsFloodInternal(current, imgData, baseColor, colorCodeToRGB(this.color), stack)
       }
       this.context.putImageData(imgData, 0, 0)
+    },
+    render (left, top, zoom) {
+      console.log(`render: ${left}, ${top}, ${zoom}`)
+      var newCanvas = document.createElement('canvas')
+      newCanvas.width = this.canvasWidth
+      newCanvas.height = this.canvasHeight
+      newCanvas.getContext('2d').putImageData(this.canvasData, 0, 0)
+
+      this.context.save()
+      this.context.clearRect(0, 0, this.canvasWidth, this.canvasHeight)
+      this.context.scale(zoom, zoom)
+      this.context.drawImage(newCanvas, 0, 0)
+      this.context.restore()
     }
   }
 }
+
 function colorCodeToRGB (code) {
   var red = parseInt(code.substring(1, 3), 16)
   var green = parseInt(code.substring(3, 5), 16)
