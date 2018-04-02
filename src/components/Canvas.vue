@@ -33,11 +33,24 @@ export default {
   mounted () {
     this.canvas = this.$refs.canvas
     this.context = this.canvas.getContext('2d')
+    this.context.imageSmoothingEnabled = false
     this.canvasData = this.context.getImageData(0, 0, this.canvasWidth, this.canvasHeight)
-    this.scroller = new Scroller.Scroller(this.render, { zooming: true })
-    // var rect = this.canvas.getBoundingClientRect()
-    // this.scroller.setPosition(rect.left + this.canvas.clientLeft, rect.top + this.canvas.clientTop)
-    // this.scroller.setDimensions(200, 200, this.canvasWidth, this.canvasHeight)
+    this.scroller = new Scroller.Scroller(
+      this.render,
+      {
+        scrollingX: true,
+        scrollingY: true,
+        animating: true,
+        locking: false,
+        zooming: true,
+        maxZoom: 8
+      })
+    this.canvas.oncontextmenu = function (e) {
+      e.preventDefault()
+    }
+    var rect = this.canvas.getBoundingClientRect()
+    this.scroller.setPosition(rect.left + this.canvas.clientLeft, rect.top + this.canvas.clientTop)
+    this.scroller.setDimensions(200, 200, this.canvasWidth, this.canvasHeight)
   },
   data () {
     return {
@@ -51,6 +64,7 @@ export default {
       canvasWidth: 320,
       canvasHeight: 240,
       dragging: false,
+      scrolling: false,
       previousPoint: {},
       msg: '0w0',
       checked: false,
@@ -68,6 +82,9 @@ export default {
       console.log('zoomOut!')
       this.scroller.zoomBy(0.5, true)
     },
+    isRightClicked (evt) {
+      return (evt.button === 2)
+    },
     getMousePos (evt) {
       // https://stackoverflow.com/questions/17130395/real-mouse-position-in-canvas
       var rect = this.context.canvas.getBoundingClientRect()
@@ -78,7 +95,14 @@ export default {
     },
     mousemove (event) {
       let point = this.getMousePos(event)
-      // console.log(`mouseMove! ${point.x}, ${point.y}`)
+      if (this.scrolling) {
+        console.log('moving!')
+        this.scroller.doTouchMove([{
+          pageX: event.pageX,
+          pageY: event.pageY
+        }], event.timeStamp)
+        return
+      }
       if (this.checked) return
       if (this.dragging) {
         this.drawLine(this.previousPoint, point)
@@ -86,8 +110,18 @@ export default {
       }
     },
     mousedown (event) {
-      this.previousPoint = this.getMousePos(event)
-      this.dragging = true
+      if (this.isRightClicked(event)) {
+        console.log('right clicked!!')
+        this.scrolling = true
+        this.dragging = false
+        this.scroller.doTouchStart([{
+          pageX: event.pageX,
+          pageY: event.pageY
+        }], event.timeStamp)
+      } else {
+        this.previousPoint = this.getMousePos(event)
+        this.dragging = true
+      }
       // let point = this.getMousePos(event)
       // if (this.isMouseOnNode(point)) {
       //   // point selected
@@ -97,6 +131,11 @@ export default {
       // }
     },
     mouseup (event) {
+      if (this.scrolling === true) {
+        this.scrolling = false
+        this.scroller.doTouchEnd(event.timeStamp)
+        return
+      }
       let mouseUpPoint = this.getMousePos(event)
       this.dragging = false
       // if (this.dragMode && this.overPoint) {
@@ -105,6 +144,7 @@ export default {
       // } else {
       //   this.addNode(mouseUpPoint)
       // }
+
       if (this.checked) {
         this.fillAsFlood(mouseUpPoint)
       } else {
@@ -239,7 +279,7 @@ export default {
       this.context.save()
       this.context.clearRect(0, 0, this.canvasWidth, this.canvasHeight)
       this.context.scale(zoom, zoom)
-      this.context.drawImage(newCanvas, 0, 0)
+      this.context.drawImage(newCanvas, -left, -top)
       this.context.restore()
     }
   }
