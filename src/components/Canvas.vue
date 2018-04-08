@@ -51,7 +51,8 @@ export default {
     }
     var rect = this.canvas.getBoundingClientRect()
     this.scroller.setPosition(rect.left + this.canvas.clientLeft, rect.top + this.canvas.clientTop)
-    this.scroller.setDimensions(200, 200, this.canvasWidth, this.canvasHeight)
+    this.scroller.setDimensions(100, 100, this.canvasWidth, this.canvasHeight)
+    this.canvasPos = {left: 0, top: 0, zoom: 1}
   },
   data () {
     return {
@@ -62,8 +63,8 @@ export default {
       points: [],
       canvas: {},
       context: {},
-      canvasWidth: 320,
-      canvasHeight: 240,
+      canvasWidth: 1024,
+      canvasHeight: 400,
       dragging: false,
       scrolling: false,
       previousPoint: {},
@@ -73,7 +74,8 @@ export default {
       canvasData: [],
       zoom: 1,
       dragStartPos: [],
-      dragCurrentPos: []
+      dragCurrentPos: [],
+      canvasPos: []
     }
   },
   methods: {
@@ -179,7 +181,7 @@ export default {
       var to = p1.x < p2.x ? p2 : p1
 
       var dx = to.x - from.x + 1
-      var dy = to.y - from.y
+      var dy = to.y - from.y + 1
       var ratio = dy / dx
 
       var cur = from
@@ -205,17 +207,22 @@ export default {
     },
     drawNode (point) {
       var startPosOffset = Math.floor(this.pointSize / 2)
-
       var rgb = colorCodeToRGB(this.color)
       for (var i = 0; i < this.pointSize / 2; i++) {
         for (var j = 0; j < this.pointSize / 2; j++) {
           this.drawPointInternal({ x: point.x - startPosOffset + i, y: point.y - startPosOffset + j }, rgb)
         }
       }
-      this.context.putImageData(this.canvasData, 0, 0, point.x - startPosOffset, point.y - startPosOffset, this.pointSize, this.pointSize)
+      this.context.putImageData(this.canvasData,
+        0 - this.canvasPos.left,
+        0 - this.canvasPos.top,
+        point.x - startPosOffset + this.canvasPos.left,
+        point.y - startPosOffset + this.canvasPos.top,
+        this.pointSize,
+        this.pointSize)
     },
     drawPointInternal (point, color) {
-      var index = (point.x + point.y * this.canvasWidth) * 4
+      var index = (point.x + this.canvasPos.left + (point.y + this.canvasPos.top) * this.canvasWidth) * 4
 
       this.canvasData.data[index + 0] = color.R
       this.canvasData.data[index + 1] = color.G
@@ -276,6 +283,7 @@ export default {
     },
     render (left, top, zoom) {
       console.log(`render: ${left}, ${top}, ${zoom}`)
+      this.canvasPos = {left: parseInt(left), top: parseInt(top), zoom: zoom}
       var newCanvas = document.createElement('canvas')
       newCanvas.width = this.canvasWidth
       newCanvas.height = this.canvasHeight
