@@ -8,6 +8,7 @@
             ref="canvas"
             :width="canvasWidth"
             :height="canvasHeight"
+            @wheel="wheel"
             @mousedown="mousedown"
             @mouseup="mouseup"
             @mousemove="mousemove"
@@ -70,7 +71,9 @@ export default {
       checked: false,
       color: {},
       canvasData: [],
-      zoom: 1
+      zoom: 1,
+      dragStartPos: [],
+      dragCurrentPos: []
     }
   },
   methods: {
@@ -82,6 +85,20 @@ export default {
       console.log('zoomOut!')
       this.scroller.zoomBy(0.5, true)
     },
+    // touchstart (event) {
+    //   this.scroller.doTouchStart(event.touches, event.timeStamp)
+    //   event.preventDefault()
+    // },
+    // touchmove (event) {
+    //   console.log('touchmove')
+    //   this.scroller.doTouchMove(event.touches, event.timeStamp, event.scale)
+    // },
+    // touchend (event) {
+    //   this.scroller.doTouchEnd(event.timeStamp)
+    // },
+    // touchcancel (event) {
+    //   this.scroller.doTouchEnd(event.timeStamp)
+    // },
     isRightClicked (evt) {
       return (evt.button === 2)
     },
@@ -93,16 +110,30 @@ export default {
         y: parseInt((evt.clientY - rect.top) / (rect.bottom - rect.top) * this.canvasHeight)
       }
     },
+    wheel (event) {
+      event.preventDefault()
+      console.log(event)
+      if (this.scrolling === false) {
+        let point = this.getMousePos(event)
+        console.log('start scrolling')
+        this.dragStartPos = point
+        this.dragCurrentPos = this.dragStartPos
+        this.scroller.doTouchStart([{
+          pageX: this.dragCurrentPos.x,
+          pageY: this.dragCurrentPos.y
+        }], event.timeStamp)
+        this.scrolling = true
+      } else {
+        this.dragCurrentPos = {x: this.dragCurrentPos.x - event.deltaX, y: this.dragCurrentPos.y - event.deltaY}
+        console.log(`scrolling ${this.dragCurrentPos.x}, ${this.dragCurrentPos.y}`)
+        this.scroller.doTouchMove([{
+          pageX: this.dragCurrentPos.x,
+          pageY: this.dragCurrentPos.y
+        }], event.timeStamp)
+      }
+    },
     mousemove (event) {
       let point = this.getMousePos(event)
-      if (this.scrolling) {
-        console.log('moving!')
-        this.scroller.doTouchMove([{
-          pageX: event.pageX,
-          pageY: event.pageY
-        }], event.timeStamp)
-        return
-      }
       if (this.checked) return
       if (this.dragging) {
         this.drawLine(this.previousPoint, point)
@@ -111,40 +142,14 @@ export default {
     },
     mousedown (event) {
       if (this.isRightClicked(event)) {
-        console.log('right clicked!!')
-        this.scrolling = true
-        this.dragging = false
-        this.scroller.doTouchStart([{
-          pageX: event.pageX,
-          pageY: event.pageY
-        }], event.timeStamp)
       } else {
         this.previousPoint = this.getMousePos(event)
         this.dragging = true
       }
-      // let point = this.getMousePos(event)
-      // if (this.isMouseOnNode(point)) {
-      //   // point selected
-      //   this.dragMode = true
-      // } else {
-      //   this.dragMode = false
-      // }
     },
     mouseup (event) {
-      if (this.scrolling === true) {
-        this.scrolling = false
-        this.scroller.doTouchEnd(event.timeStamp)
-        return
-      }
       let mouseUpPoint = this.getMousePos(event)
       this.dragging = false
-      // if (this.dragMode && this.overPoint) {
-      //   this.dragPoint(this.overPoint, mouseUpPoint)
-      //   this.dragMode = false
-      // } else {
-      //   this.addNode(mouseUpPoint)
-      // }
-
       if (this.checked) {
         this.fillAsFlood(mouseUpPoint)
       } else {
@@ -315,6 +320,10 @@ function decompositColor (imgData, pixelPos) {
 
 <!-- Add "scoped" attribute to limit CSS to this component only -->
 <style scoped>
+html, body {
+   max-width: 100%;
+   overflow-x: hidden;
+}
 h1, h2 {
   font-weight: normal;
 }
