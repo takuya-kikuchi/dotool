@@ -37,7 +37,7 @@ export default {
     this.context.imageSmoothingEnabled = false
     this.canvasData = this.context.getImageData(0, 0, this.canvasWidth, this.canvasHeight)
     this.scroller = new Scroller.Scroller(
-      this.render,
+      this.renderCallback,
       {
         scrollingX: true,
         scrollingY: true,
@@ -138,7 +138,7 @@ export default {
       let point = this.getMousePos(event)
       if (this.checked) return
       if (this.dragging) {
-        this.drawLine(this.previousPoint, point)
+        this.execToDrawLine(this.previousPoint, point)
         this.previousPoint = point
       }
     },
@@ -153,9 +153,9 @@ export default {
       let mouseUpPoint = this.getMousePos(event)
       this.dragging = false
       if (this.checked) {
-        this.fillAsFlood(mouseUpPoint)
+        this.execToFill(mouseUpPoint)
       } else {
-        this.addNode(mouseUpPoint)
+        this.execToDrawPoint(mouseUpPoint)
       }
       console.log(`mouseUp! ${mouseUpPoint.x}, ${mouseUpPoint.y}`)
     },
@@ -170,13 +170,11 @@ export default {
         }
       })
     },
-    addNode (point) {
-      this.context.save()
-      this.drawNode(point)
-      this.context.restore()
-      this.points.push(point)
+    execToDrawPoint (point) {
+        this.drawByBrush(point)
+        this.render()
     },
-    drawLine (p1, p2) {
+    execToDrawLine (p1, p2) {
       var from = p1.x < p2.x ? p1 : p2
       var to = p1.x < p2.x ? p2 : p1
 
@@ -188,40 +186,44 @@ export default {
       console.log(`drawLine ${p1.x},${p1.y} -> ${p2.x},${p2.y} dx:${dx} dy:${dy} ratio: ${ratio}`)
       while (cur.x <= to.x) {
         console.log(`${cur.x}, ${cur.y} -> ${to.x}, ${to.y}`)
-        this.drawNode(cur)
+        this.drawByBrush(cur)
         var curY = cur.y
         var nextY = from.y + ratio * (cur.x - from.x + 1)
         if (ratio > 0) {
           while (curY < nextY) {
-            this.drawNode({x: cur.x, y: curY})
+            this.drawByBrush({x: cur.x, y: curY})
             curY += 1
           }
         } else {
           while (curY > nextY) {
-            this.drawNode({x: cur.x, y: curY})
+            this.drawByBrush({x: cur.x, y: curY})
             curY -= 1
           }
         }
         cur = {x: cur.x + 1, y: curY}
       }
+      this.render()
     },
-    drawNode (point) {
-      var startPosOffset = Math.floor(this.pointSize / 2)
+    drawByBrush (point) {
+      var x = Math.floor(point.x / this.canvasPos.zoom)
+      var y = Math.floor(point.y / this.canvasPos.zoom)
+      var startPosOffset = Math.floor(this.pointSize / 2 * this.canvasPos.zoom)
+      var pointSize = Math.floor(this.pointSize * this.canvasPos.zoom)
       var rgb = colorCodeToRGB(this.color)
-      for (var i = 0; i < this.pointSize / 2; i++) {
-        for (var j = 0; j < this.pointSize / 2; j++) {
-          this.drawPointInternal({ x: point.x - startPosOffset + i, y: point.y - startPosOffset + j }, rgb)
+      for (var i = 0; i < pointSize; i++) {
+        for (var j = 0; j < pointSize; j++) {
+          this.drawPointToData({ x: x - startPosOffset + i, y: y - startPosOffset + j }, rgb)
         }
       }
-      this.context.putImageData(this.canvasData,
-        0 - this.canvasPos.left,
-        0 - this.canvasPos.top,
-        point.x - startPosOffset + this.canvasPos.left,
-        point.y - startPosOffset + this.canvasPos.top,
-        this.pointSize,
-        this.pointSize)
+//      this.context.putImageData(this.canvasData,
+//        0 - this.canvasPos.left,
+//        0 - this.canvasPos.top,
+//        point.x - startPosOffset + this.canvasPos.left,
+//        point.y - startPosOffset + this.canvasPos.top,
+//        this.pointSize,
+//        this.pointSize)
     },
-    drawPointInternal (point, color) {
+    drawPointToData (point, color) {
       var index = (point.x + this.canvasPos.left + (point.y + this.canvasPos.top) * this.canvasWidth) * 4
 
       this.canvasData.data[index + 0] = color.R
@@ -268,8 +270,9 @@ export default {
         pixelPos += canvasWidth * 4
       }
     },
-    fillAsFlood (point) {
+    execToFill (rawPoint) {
       // var imgData = this.context.getImageData(0, 0, this.canvasWidth, this.canvasHeight)
+      var point = getPointInCanvas(rawPoint, this.canvasPos)
       var imgData = this.canvasData
       var pixelPos = (point.y * this.canvasWidth + point.x) * 4
       var baseColor = decompositColor(imgData, pixelPos)
@@ -280,10 +283,18 @@ export default {
         this.fillAsFloodInternal(current, imgData, baseColor, colorCodeToRGB(this.color), stack)
       }
       this.context.putImageData(imgData, 0, 0)
+      this.render()
     },
-    render (left, top, zoom) {
+    renderCallback (left, top, zoom) {
+      this.canvasPos = {left: left, top: top, zoom: zoom}
+      this.render()
+    },
+
+    render () {
+      var left = this.canvasPos.left
+      var top = this.canvasPos.top
+      var zoom = this.canvasPos.zoom
       console.log(`render: ${left}, ${top}, ${zoom}`)
-      this.canvasPos = {left: parseInt(left), top: parseInt(top), zoom: zoom}
       var newCanvas = document.createElement('canvas')
       newCanvas.width = this.canvasWidth
       newCanvas.height = this.canvasHeight
@@ -296,6 +307,10 @@ export default {
       this.context.restore()
     }
   }
+}
+
+function getPointInCanvas(point, canvasPos) {
+    return {x: Math.floor(point.x / canvasPos.zoom) + canvasPos.left, y: Math.floor(point.y / canvasPos.zoom) + canvasPos.top}
 }
 
 function colorCodeToRGB (code) {
