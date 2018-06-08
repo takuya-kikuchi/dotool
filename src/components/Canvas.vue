@@ -185,7 +185,7 @@
         var ratio = dy / dx
 
         var cur = from
-        console.log(`drawLine ${p1.x},${p1.y} -> ${p2.x},${p2.y} dx:${dx} dy:${dy} ratio: ${ratio}`)
+        console.log(`drawLine ${p1.x},${p1.y} -> ${p2.x},${p2.y} dx:${dx} dy:${dy} ratio: ${ratio}, color: ${this.color}`)
         while (cur.x <= to.x) {
           console.log(`${cur.x}, ${cur.y} -> ${to.x}, ${to.y}`)
           this.drawByBrush(cur)
@@ -220,8 +220,14 @@
         }
       },
       drawPointToData (point, color) {
-        var index = (point.x + this.canvasPos.left + (point.y + this.canvasPos.top) * this.canvasWidth) * 4
+        var x = point.x + this.canvasPos.left
+        var y = point.y + this.canvasPos.top
+        var index = (x + y * this.canvasWidth) * 4
 
+        if (x > this.canvasWidth || y > this.canvasHeight || this.canvasData.data.length < index) {
+            console.log('invalid point');
+            return
+        }
         this.canvasData.data[index + 0] = color.R
         this.canvasData.data[index + 1] = color.G
         this.canvasData.data[index + 2] = color.B
@@ -282,7 +288,7 @@
         this.render()
       },
       renderCallback (left, top, zoom) {
-        this.canvasPos = {left: left, top: top, zoom: zoom}
+        this.canvasPos = {left: Math.floor(left), top: Math.floor(top), zoom: zoom}
         this.render()
       },
 
