@@ -44,7 +44,7 @@
           animating: true,
           locking: false,
           zooming: true,
-          maxZoom: 8
+          maxZoom: 64
         })
       this.canvas.oncontextmenu = function (e) {
         e.preventDefault()
@@ -80,11 +80,13 @@
     },
     methods: {
       zoomIn () {
-        console.log('zoomIn!')
-        this.scroller.zoomBy(2, true)
+        this.zoom *= 2
+        console.log(`zoomIn!${this.zoom}`)
+        this.scroller.zoomBy(2.0, true)
       },
       zoomOut () {
-        console.log('zoomOut!')
+        this.zoom /= 2
+        console.log(`zoomOut!${this.zoom}`)
         this.scroller.zoomBy(0.5, true)
       },
       // touchstart (event) {
@@ -212,6 +214,7 @@
         var rgb = colorCodeToRGB(this.color)
         for (var i = 0; i < pointSize; i++) {
           for (var j = 0; j < pointSize; j++) {
+//              console.log(`drawByBrush: ${x - startPosOffset + i}, ${y - startPosOffset + j}`)
             this.drawPointToData({x: x - startPosOffset + i, y: y - startPosOffset + j}, rgb)
           }
         }
@@ -287,7 +290,7 @@
         var left = this.canvasPos.left
         var top = this.canvasPos.top
         var zoom = this.canvasPos.zoom
-        console.log(`render: ${left}, ${top}, ${zoom}`)
+        console.log(`render: ${left}, ${top}, ${zoom}, ${left % 1}, ${top % 1}`)
         var newCanvas = document.createElement('canvas')
         newCanvas.width = this.canvasWidth
         newCanvas.height = this.canvasHeight
@@ -298,6 +301,20 @@
         this.context.scale(zoom, zoom)
         this.context.drawImage(newCanvas, -left, -top)
         this.context.restore()
+        if(zoom >= 8) {
+          for(var x = left % 1; x < this.canvasWidth; x += zoom) {
+            this.context.beginPath();
+            this.context.moveTo(x, 0)
+            this.context.lineTo(x, this.canvasHeight)
+            this.context.stroke()
+          }
+          for(var y = top % 1; y < this.canvasHeight; y += zoom) {
+            this.context.beginPath();
+            this.context.moveTo(0, y)
+            this.context.lineTo(this.canvasWidth, y)
+            this.context.stroke()
+          }
+        }
       },
     }
   }
