@@ -114,10 +114,36 @@
           y: parseInt((evt.clientY - rect.top) / (rect.bottom - rect.top) * this.canvasHeight)
         }
       },
+      gesturestart (event) {
+        event.preventDefault()
+        console.log('gesturestart')
+        console.log(event)
+      },
+      gesturechange (event) {
+        event.preventDefault()
+        console.log('gesturechange')
+        console.log(event)
+      },
+      gestureend (event) {
+        event.preventDefault()
+        console.log('gestureend')
+        console.log(event)
+      },
       wheel (event) {
         event.preventDefault()
-        console.log(event)
-        if (this.scrolling === false) {
+        if (event.ctrlKey === true) {
+          var delta = 1.5
+          if(event.wheelDelta > 0) {
+            this.zoom *= delta
+            console.log(`zoomIn!${this.zoom}`)
+            this.scroller.zoomBy(delta, true)
+          } else {
+            this.zoom /= delta
+            console.log(`zoomIn!${this.zoom}`)
+            this.scroller.zoomBy(1/delta, true)
+          }
+
+        } else if (this.scrolling === false) {
           let point = this.getMousePos(event)
           console.log('start scrolling')
           this.dragStartPos = point
