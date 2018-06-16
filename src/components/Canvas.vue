@@ -9,6 +9,9 @@
         :width="canvasWidth"
         :height="canvasHeight"
         @wheel="wheel"
+        @gesturestart="gesturestart"
+        @gesturechange="gesturechange"
+        @gestureend="gestureend"
         @mousedown="mousedown"
         @mouseup="mouseup"
         @mousemove="mousemove"
@@ -41,7 +44,7 @@
         {
           scrollingX: true,
           scrollingY: true,
-          animating: true,
+          animating: false,
           locking: false,
           zooming: true,
           maxZoom: 64
@@ -57,7 +60,7 @@
     data () {
       return {
         scroller: {},
-        pointSize: 10,
+        pointSize: 4,
         strokeStyle: 'darkgrey',
         fillStyle: 'darkgrey',
         points: [],
@@ -129,19 +132,25 @@
         console.log('gestureend')
         console.log(event)
       },
+      doZooming (zoomLevel) {
+          this.zoom = zoomLevel;
+          this.canvasPos = {left: Math.floor(this.canvasPos.left), top: Math.floor(this.canvasPos.top), zoom: this.zoom}
+          this.render()
+      },
       wheel (event) {
         event.preventDefault()
         if (event.ctrlKey === true) {
-          var delta = 1.5
-          if(event.wheelDelta > 0) {
-            this.zoom *= delta
-            console.log(`zoomIn!${this.zoom}`)
-            this.scroller.zoomBy(delta, true)
-          } else {
-            this.zoom /= delta
-            console.log(`zoomIn!${this.zoom}`)
-            this.scroller.zoomBy(1/delta, true)
-          }
+          var delta = 1.04
+          this.doZooming(event.wheelDelta > 0 ? this.zoom * delta : this.zoom / delta);
+          // if(event.wheelDelta > 0) {
+          //   this.zoom *= delta
+          //   console.log(`zoomIn!${this.zoom}`)
+          //   this.scroller.zoomBy(delta, false)
+          // } else {
+          //   this.zoom /= delta
+          //   console.log(`zoomIn!${this.zoom}`)
+          //   this.scroller.zoomBy(1/delta, false)
+          // }
 
         } else if (this.scrolling === false) {
           let point = this.getMousePos(event)
@@ -154,7 +163,9 @@
           }], event.timeStamp)
           this.scrolling = true
         } else {
-          this.dragCurrentPos = {x: this.dragCurrentPos.x - event.deltaX, y: this.dragCurrentPos.y - event.deltaY}
+          var deltaX = event.deltaX / this.zoom
+          var deltaY = event.deltaY / this.zoom
+          this.dragCurrentPos = {x: this.dragCurrentPos.x - deltaX * 2, y: this.dragCurrentPos.y - deltaY * 2}
           console.log(`scrolling ${this.dragCurrentPos.x}, ${this.dragCurrentPos.y}`)
           this.scroller.doTouchMove([{
             pageX: this.dragCurrentPos.x,
@@ -313,8 +324,8 @@
         this.context.putImageData(imgData, 0, 0)
         this.render()
       },
-      renderCallback (left, top, zoom) {
-        this.canvasPos = {left: Math.floor(left), top: Math.floor(top), zoom: zoom}
+      renderCallback (left, top, _) {
+        this.canvasPos = {left: Math.floor(left), top: Math.floor(top), zoom: this.zoom}
         this.render()
       },
 
