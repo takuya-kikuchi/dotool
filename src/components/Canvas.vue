@@ -132,18 +132,27 @@
         console.log('gestureend')
         console.log(event)
       },
-      doZooming (zoomLevel) {
+      doZooming (zoomLevel, mousePos) {
+          var ratio = zoomLevel / this.canvasPos.zoom
+          let offsetX = Math.floor(mousePos.x / this.canvasPos.zoom);
+          let newOffsetX = Math.floor(mousePos.x / ratio / this.canvasPos.zoom)
+          this.canvasPos.left = this.canvasPos.left + offsetX - newOffsetX
+
+          let offsetY = Math.floor(mousePos.y / this.canvasPos.zoom);
+          let newOffsetY = Math.floor(mousePos.y / ratio / this.canvasPos.zoom)
+          this.canvasPos.top = this.canvasPos.top + offsetY - newOffsetY
+
           this.canvasPos.zoom = zoomLevel;
-          //this.canvasPos = {left: Math.floor(this.canvasPos.left), top: Math.floor(this.canvasPos.top), zoom: zoomLevel}
+          this.scroller.__publish(this.canvasPos.left, this.canvasPos.top, this.canvasPos.zoom, false)
           this.render()
       },
       wheel (event) {
         event.preventDefault()
+        let point = this.getMousePos(event)
         if (event.ctrlKey === true) {
           var delta = 1.04
-          this.doZooming(event.wheelDelta > 0 ? this.canvasPos.zoom * delta : this.canvasPos.zoom / delta);
+          this.doZooming(event.wheelDelta > 0 ? this.canvasPos.zoom * delta : this.canvasPos.zoom / delta, point);
         } else if (this.scrolling === false) {
-          let point = this.getMousePos(event)
           console.log('start scrolling')
           this.dragStartPos = point
           this.dragCurrentPos = this.dragStartPos
