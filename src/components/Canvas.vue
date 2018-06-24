@@ -62,9 +62,6 @@
       return {
         scroller: {},
         pointSize: 1,
-        strokeStyle: 'darkgrey',
-        fillStyle: 'darkgrey',
-        points: [],
         canvas: {},
         context: {},
         canvasWidth: 1024,
@@ -72,7 +69,7 @@
         dragging: false,
         scrolling: false,
         previousPoint: {},
-        msg: '0w0',
+        msg: '^o^',
         checked: false,
         color: {},
         canvasData: [],
@@ -197,17 +194,6 @@
         }
         console.log(`mouseUp! ${mouseUpPoint.x}, ${mouseUpPoint.y}`)
       },
-      dragPoint (selectedPoint, newPoint) {
-        this.points.map((pointToMove) => {
-          if (pointToMove.x === selectedPoint.x && pointToMove.y === selectedPoint.y) {
-            pointToMove.x = newPoint.x
-            pointToMove.y = newPoint.y
-
-            this.clear()
-            this.drawAllNodes()
-          }
-        })
-      },
       execToDrawPoint (point) {
         this.drawByBrush(point)
         this.render()
@@ -314,7 +300,6 @@
         var imgData = this.canvasData
         var pixelPos = (point.y * this.canvasWidth + point.x) * 4
         var baseColor = decompositColor(imgData, pixelPos)
-        console.log(`${baseColor.R} ${baseColor.G} ${baseColor.B}, ${this.fillStyle}`)
         var stack = [point]
         while (stack.length > 0) {
           var current = stack.pop()
